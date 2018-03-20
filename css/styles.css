@@ -197,7 +197,7 @@ nav h1 a {
 @media(min-width: 768px) {
   .inside #map-container {
     background: blue none repeat scroll 0 0;
-    height: 87%;
+    height: calc(100% - 80px);
     position: fixed;
     right: 0;
     top: 80px;
@@ -215,7 +215,7 @@ nav h1 a {
 }
 @media(min-width: 768px) {
   .inside #footer {
-    width: 50%;
+    width: calc(50% - 50px);
   }
 }
 #restaurant-name {
@@ -254,7 +254,7 @@ nav h1 a {
 }
 @media(min-width: 768px) {
   #restaurant-container, #reviews-container {
-    width: 50%;
+    width: calc(50% - 40px);
   }
 }
 #reviews-container {
