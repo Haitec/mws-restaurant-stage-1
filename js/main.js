@@ -161,7 +161,7 @@ createRestaurantHTML = (restaurant) => {
 
   const name = document.createElement('h2');
   name.innerHTML = restaurant.name;
-  name.role = 'heading';
+  name.tabIndex = 0;
   li.append(name);
 
   const neighborhood = document.createElement('p');
