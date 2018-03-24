@@ -5,20 +5,20 @@ var version = name + '-v1-';
 
 var assets = [
   '/',
-  'css/styles.css',
-  'img/1.jpg',
-  'img/2.jpg',
-  'img/3.jpg',
-  'img/4.jpg',
-  'img/5.jpg',
-  'img/6.jpg',
-  'img/7.jpg',
-  'img/8.jpg',
-  'img/9.jpg',
-  'img/10.jpg',
-  'js/dbhelper.js',
-  'js/main.js',
-  'js/restaurant_info.js'
+  '/css/styles.css',
+  '/img/1.jpg',
+  '/img/2.jpg',
+  '/img/3.jpg',
+  '/img/4.jpg',
+  '/img/5.jpg',
+  '/img/6.jpg',
+  '/img/7.jpg',
+  '/img/8.jpg',
+  '/img/9.jpg',
+  '/img/10.jpg',
+  '/js/dbhelper.js',
+  '/js/main.js',
+  '/js/restaurant_info.js'
 ];
 
 self.addEventListener('install', function (event) {
@@ -50,14 +50,14 @@ self.addEventListener('fetch', function (event) {
         function fetchedFromNetwork(response) {
           var cacheCopy = response.clone();
 
-          caches
-            .open(version + 'pages')
-            .then(function add(cache) {
-              return cache.put(event.request, cacheCopy);
-            })
-            .then(function () {
-              console.log('[SW] fetch response stored in cache.', event.request.url);
-            });
+          var fileName = new URL(event.request.url).pathname;
+          if (!assets.includes(fileName)) {
+            caches
+              .open(version + 'pages')
+              .then(function add(cache) {
+                return cache.put(event.request, cacheCopy);
+              });
+          }
 
           return response;
         }
