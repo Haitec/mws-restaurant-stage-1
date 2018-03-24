@@ -28,9 +28,6 @@ self.addEventListener('install', function (event) {
       .then(function (cache) {
         return cache.addAll(assets);
       })
-      .then(function () {
-        console.log('[SW] installed.');
-      })
   );
 });
 
@@ -48,13 +45,10 @@ self.addEventListener('fetch', function (event) {
         var networked = fetch(event.request)
           .then(fetchedFromNetwork);
 
-        console.log('[SW] fetch ', cached ? '(cached)' : '(network)', event.request.url);
         return cached || networked;
 
         function fetchedFromNetwork(response) {
           var cacheCopy = response.clone();
-
-          console.log('[SW] fetch response from network.', event.request.url);
 
           caches
             .open(version + 'pages')
@@ -85,9 +79,6 @@ self.addEventListener('activate', function (event) {
               return caches.delete(key);
             })
         );
-      })
-      .then(function () {
-        console.log('[SW] activated.');
       })
   );
 });
