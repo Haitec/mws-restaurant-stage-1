@@ -1,4 +1,5 @@
 let restaurant;
+let reviews;
 var map;
 
 /**
@@ -33,6 +34,11 @@ initMap = () => {
       DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
     }
   });
+  fetchReviewsFromURL((error, reviews) => {
+    if (error) { // Got an error!
+      console.error(error);
+    }
+  });
 }
 
 /**
@@ -61,6 +67,31 @@ fetchRestaurantFromURL = (callback) => {
 }
 
 /**
+ * Get current reviews from page URL.
+ */
+fetchReviewsFromURL = (callback) => {
+  if (self.reviews) { // restaurant already fetched!
+    callback(null, self.reviews)
+    return;
+  }
+  const id = getParameterByName('id');
+  if (!id) { // no id found in URL
+    error = 'No restaurant id in URL'
+    callback(error, null);
+  } else {
+    DBHelper.fetchReviewsByRestaurantId(id, (error, reviews) => {
+      self.reviews = reviews;
+      if (!reviews) {
+        console.error(error);
+        return;
+      }
+      fillReviewsHTML();
+      callback(null, reviews)
+    });
+  }
+}
+
+/**
  * Create restaurant HTML and add it to the webpage
  */
 fillRestaurantHTML = (restaurant = self.restaurant) => {
@@ -82,8 +113,6 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
-  // fill reviews
-  fillReviewsHTML();
 }
 
 /**
@@ -109,14 +138,14 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-fillReviewsHTML = (reviews = self.restaurant.reviews) => {
+fillReviewsHTML = (reviews = self.reviews) => {
   const container = document.getElementById('reviews-container');
   const title = document.createElement('h3');
   title.innerHTML = 'Reviews';
   title.tabIndex = 0;
   container.appendChild(title);
 
-  if (!reviews) {
+  if (!reviews || !reviews.length) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
     container.appendChild(noReviews);
@@ -140,7 +169,7 @@ createReviewHTML = (review) => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  date.innerHTML = new Date(review.updatedAt).toLocaleString();
   date.tabIndex = 0;
   li.appendChild(date);
 
