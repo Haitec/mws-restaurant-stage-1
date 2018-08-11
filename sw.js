@@ -3,7 +3,7 @@
 var name = 'mws'
 var version = name + '-v1-'
 var idbVersion = 1
-var idbStoreName = 'restaurants'
+var idbStoreNames = ['restaurants', 'reviews']
 
 var assets = [
   '/',
@@ -41,35 +41,15 @@ self.addEventListener('fetch', function (event) {
   }
 
   if (requestUrl.origin !== location.origin) {
-    if (requestUrl.hostname === location.hostname && requestUrl.pathname.startsWith('/restaurants')) {
-      var key = requestUrl.pathname
-
-      event.respondWith(
-        IDBGet(key)
-          .then(cached => {
-            var networked = fetch(event.request)
-              .then(fetchedFromNetwork)
-              .catch()
-
-            if (cached) {
-              return new Response(cached, {
-                headers: { 'Content-Type': 'application/json' }
-              })
-            }
-            return networked
-
-            function fetchedFromNetwork(response) {
-              response.clone()
-                .json()
-                .then(json => {
-                  IDBSet(key, JSON.stringify(json))
-                  return json
-                })
-
-              return response
-            }
-          })
-      )
+    if (requestUrl.hostname === location.hostname) {
+      var path = requestUrl.pathname.split('/')[1]
+      if (idbStoreNames.includes(path)) {
+        var key = requestUrl.pathname + requestUrl.search
+        var store = path
+        event.respondWith(
+          cacheIn(store, key, event)
+        )
+      }
     }
     return
   }
@@ -124,19 +104,21 @@ function openIDB() {
 
   open.onupgradeneeded = function () {
     var db = open.result
-    db.createObjectStore(idbStoreName)
+    idbStoreNames.forEach(function (store) {
+      db.createObjectStore(store)
+    })
   }
 
   return open
 }
 
-function IDBGet(id) {
+function IDBGet(storeName, id) {
   return new Promise((resolve, reject) => {
     var open = openIDB()
     open.onsuccess = function () {
       var db = open.result
-      var tx = db.transaction(idbStoreName, 'readonly')
-      var store = tx.objectStore(idbStoreName)
+      var tx = db.transaction(storeName, 'readonly')
+      var store = tx.objectStore(storeName)
 
       store.get(id).onsuccess = function (req) {
         resolve(req.target.result)
@@ -152,13 +134,13 @@ function IDBGet(id) {
   })
 }
 
-function IDBSet(id, value) {
+function IDBSet(storeName, id, value) {
   return new Promise((resolve, reject) => {
     var open = openIDB()
     open.onsuccess = function () {
       var db = open.result
-      var tx = db.transaction(idbStoreName, 'readwrite')
-      var store = tx.objectStore(idbStoreName)
+      var tx = db.transaction(storeName, 'readwrite')
+      var store = tx.objectStore(storeName)
 
       store.put(value, id).onsuccess = function (req) {
         resolve()
@@ -172,4 +154,31 @@ function IDBSet(id, value) {
       reject(error)
     }
   })
+}
+
+function cacheIn(storeName, key, event) {
+  return IDBGet(storeName, key)
+    .then(cached => {
+      var networked = fetch(event.request)
+        .then(fetchedFromNetwork)
+        .catch()
+
+      if (cached) {
+        return new Response(cached, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+      return networked
+
+      function fetchedFromNetwork(response) {
+        response.clone()
+          .json()
+          .then(json => {
+            IDBSet(storeName, key, JSON.stringify(json))
+            return json
+          })
+
+        return response
+      }
+    })
 }

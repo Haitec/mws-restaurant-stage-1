@@ -3,13 +3,24 @@
  */
 class DBHelper {
 
+  static get port() {
+    return 1337
+  }
+
   /**
    * Database URL.
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 1337
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${this.port}/restaurants`;
+  }
+
+  /**
+   * Reviews URL.
+   * Change this to review.json file location on your server.
+   */
+  static get REVIEWS_URL() {
+    return `http://localhost:${this.port}/reviews`;
   }
 
   /**
@@ -23,12 +34,32 @@ class DBHelper {
   }
 
   /**
+   * Fetch all reviews.
+   */
+  static fetchReviews(callback) {
+    fetch(DBHelper.REVIEWS_URL)
+      .then(response => response.json())
+      .then(reviews => callback(null, reviews))
+      .catch(error => callback(error, null))
+  }
+
+  /**
    * Fetch a restaurant by its ID.
    */
   static fetchRestaurantById(id, callback) {
     fetch(DBHelper.DATABASE_URL + '/' + id)
       .then(response => response.json())
       .then(restaurant => callback(null, restaurant))
+      .catch(error => callback(error, null))
+  }
+
+  /**
+   * Fetch reviews by their restaurant ID.
+   */
+  static fetchReviewsByRestaurantId(id, callback) {
+    fetch(DBHelper.REVIEWS_URL + '/?restaurant_id=' + id)
+      .then(response => response.json())
+      .then(reviews => callback(null, reviews))
       .catch(error => callback(error, null))
   }
 
