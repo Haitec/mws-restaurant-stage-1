@@ -294,3 +294,9 @@ nav h1 a {
 #restaurant-hours td {
   color: #666;
 }
+#reviews-list li input,
+#reviews-list li select,
+#reviews-list li textarea,
+#reviews-list li button {
+  width: 100%;
+}

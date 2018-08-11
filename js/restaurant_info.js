@@ -155,6 +155,7 @@ fillReviewsHTML = (reviews = self.reviews) => {
   reviews.forEach(review => {
     ul.appendChild(createReviewHTML(review));
   });
+  ul.appendChild(createReviewFormHTML());
   container.appendChild(ul);
 }
 
@@ -182,6 +183,86 @@ createReviewHTML = (review) => {
   comments.innerHTML = review.comments;
   comments.tabIndex = 0;
   li.appendChild(comments);
+
+  return li;
+}
+
+/**
+ * Create review HTML form and add it to the webpage.
+ */
+createReviewFormHTML = () => {
+  const li = document.createElement('li');
+  li.id = 'review-form';
+
+  const name = document.createElement('p');
+  name.innerHTML = 'Name';
+  name.tabIndex = 0;
+  li.appendChild(name);
+
+  const nameInput = document.createElement('input');
+  nameInput.tabIndex = 0;
+  nameInput.name = 'name';
+  li.appendChild(nameInput);
+
+  li.appendChild(document.createElement('br'));
+  li.appendChild(document.createElement('br'));
+
+  const rating = document.createElement('p');
+  rating.innerHTML = 'Rating';
+  rating.tabIndex = 0;
+  li.appendChild(rating);
+
+  const ratingSelect = document.createElement('select');
+  ratingSelect.tabIndex = 0;
+  ratingSelect.name = 'rating';
+  li.appendChild(ratingSelect);
+
+  const option = document.createElement('option');
+  ratingSelect.appendChild(option);
+
+  for (let i = 1; i <= 5; i++) {
+    const option = document.createElement('option');
+    option.innerHTML = i;
+    option.value = i;
+    ratingSelect.appendChild(option);
+  }
+
+  li.appendChild(document.createElement('br'));
+  li.appendChild(document.createElement('br'));
+
+  const message = document.createElement('textarea');
+  message.tabIndex = 0;
+  message.name = 'message';
+  message.rows = 5;
+  li.appendChild(message);
+
+  li.appendChild(document.createElement('br'));
+
+  const submit = document.createElement('button');
+  submit.tabIndex = 0;
+  submit.innerText = 'Submit';
+  submit.onclick = () => {
+    const review = {
+      "restaurant_id": self.restaurant.id,
+      "name": nameInput.value,
+      "rating": ratingSelect.value,
+      "comments": message.value
+    }
+    DBHelper.saveReview(review, (error, review) => {
+      self.reviews.push(review);
+      if (!review) {
+        console.error(error);
+        return;
+      }
+
+      document.getElementById('review-form').remove();
+
+      const ul = document.getElementById('reviews-list');
+      ul.appendChild(createReviewHTML(review));
+      ul.appendChild(createReviewFormHTML());
+    })
+  }
+  li.appendChild(submit);
 
   return li;
 }

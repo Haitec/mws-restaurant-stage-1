@@ -12,7 +12,7 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    return `http://localhost:${this.port}/restaurants`;
+    return `http://localhost:${this.port}/restaurants`
   }
 
   /**
@@ -20,7 +20,7 @@ class DBHelper {
    * Change this to review.json file location on your server.
    */
   static get REVIEWS_URL() {
-    return `http://localhost:${this.port}/reviews`;
+    return `http://localhost:${this.port}/reviews`
   }
 
   /**
@@ -64,6 +64,22 @@ class DBHelper {
   }
 
   /**
+   * Save review of restaurant.
+   */
+  static saveReview(review, callback) {
+    fetch(DBHelper.REVIEWS_URL, {
+      method: 'post',
+      body: JSON.stringify(review)
+    })
+      .then(() => {
+        review.createdAt = Date.now()
+        review.updatedAt = review.createdAt
+        callback(null, review)
+      })
+      .catch(error => callback(error, null))
+  }
+
+  /**
    * Fetch restaurants by a cuisine type with proper error handling.
    */
   static fetchRestaurantByCuisine(cuisine, callback) {
@@ -94,10 +110,10 @@ class DBHelper {
       .then(restaurants => {
         let results = restaurants
         if (cuisine != 'all') { // filter by cuisine
-          results = results.filter(r => r.cuisine_type == cuisine);
+          results = results.filter(r => r.cuisine_type == cuisine)
         }
         if (neighborhood != 'all') { // filter by neighborhood
-          results = results.filter(r => r.neighborhood == neighborhood);
+          results = results.filter(r => r.neighborhood == neighborhood)
         }
         return results
       })
@@ -133,14 +149,14 @@ class DBHelper {
    * Restaurant page URL.
    */
   static urlForRestaurant(restaurant) {
-    return (`./restaurant.html?id=${restaurant.id}`);
+    return (`./restaurant.html?id=${restaurant.id}`)
   }
 
   /**
    * Restaurant image URL.
    */
   static imageUrlForRestaurant(restaurant) {
-    return (`/img/${restaurant.photograph || restaurant.id}.jpg`);
+    return (`/img/${restaurant.photograph || restaurant.id}.jpg`)
   }
 
   /**
@@ -154,8 +170,8 @@ class DBHelper {
         alt: restaurant.name,
         url: DBHelper.urlForRestaurant(restaurant)
       })
-    marker.addTo(map);
-    return marker;
+    marker.addTo(map)
+    return marker
   }
 
 }
