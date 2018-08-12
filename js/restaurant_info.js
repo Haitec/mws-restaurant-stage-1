@@ -113,6 +113,8 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
+
+  fillFavoriteRestaurantHTML()
 }
 
 /**
@@ -136,6 +138,22 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 }
 
 /**
+ * Create restaurant favorite HTML and add it to the webpage
+ */
+fillFavoriteRestaurantHTML = (restaurant = self.restaurant) => {
+  // http://localhost:1337/restaurants/<restaurant_id>/?is_favorite=true
+  
+  const favorite = document.getElementById('restaurant-favorite');
+
+  const button = document.createElement('button');
+  button.tabIndex = 0
+  button.innerText = 'Mark as favorite'
+  button.innerText = 'Remove as favorite'
+
+  favorite.appendChild(button)
+}
+
+/**
  * Create all reviews HTML and add them to the webpage.
  */
 fillReviewsHTML = (reviews = self.reviews) => {
@@ -145,16 +163,17 @@ fillReviewsHTML = (reviews = self.reviews) => {
   title.tabIndex = 0;
   container.appendChild(title);
 
+  const ul = document.getElementById('reviews-list');
   if (!reviews || !reviews.length) {
     const noReviews = document.createElement('p');
+    noReviews.id = 'no-reviews';
     noReviews.innerHTML = 'No reviews yet!';
-    container.appendChild(noReviews);
-    return;
+    ul.appendChild(noReviews);
+  } else {
+    reviews.forEach(review => {
+      ul.appendChild(createReviewHTML(review));
+    });
   }
-  const ul = document.getElementById('reviews-list');
-  reviews.forEach(review => {
-    ul.appendChild(createReviewHTML(review));
-  });
   ul.appendChild(createReviewFormHTML());
   container.appendChild(ul);
 }
@@ -255,6 +274,10 @@ createReviewFormHTML = () => {
         return;
       }
 
+      const noReviews = document.getElementById('no-reviews');
+      if (noReviews) {
+        noReviews.remove();
+      }
       document.getElementById('review-form').remove();
 
       const ul = document.getElementById('reviews-list');
