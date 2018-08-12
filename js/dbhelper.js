@@ -64,6 +64,18 @@ class DBHelper {
   }
 
   /**
+   * Save favorite status of restaurant.
+   */
+  static saveFavorite(id, isFavorite, callback) {
+    fetch(DBHelper.DATABASE_URL + '/' + id + '/?is_favorite=' + isFavorite, {
+      method: 'PUT'
+    })
+      .then(response => response.json())
+      .then(restaurant => callback(null, restaurant))
+      .catch(error => callback(error, null))
+  }
+
+  /**
    * Save review of restaurant.
    */
   static saveReview(review, callback) {
@@ -71,11 +83,8 @@ class DBHelper {
       method: 'post',
       body: JSON.stringify(review)
     })
-      .then(() => {
-        review.createdAt = Date.now()
-        review.updatedAt = review.createdAt
-        callback(null, review)
-      })
+      .then(response => response.json())
+      .then(review => callback(null, review))
       .catch(error => callback(error, null))
   }
 

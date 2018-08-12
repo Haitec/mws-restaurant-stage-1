@@ -114,7 +114,7 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
     fillRestaurantHoursHTML();
   }
 
-  fillFavoriteRestaurantHTML()
+  fillRestaurantFavoriteHTML()
 }
 
 /**
@@ -140,15 +140,29 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 /**
  * Create restaurant favorite HTML and add it to the webpage
  */
-fillFavoriteRestaurantHTML = (restaurant = self.restaurant) => {
-  // http://localhost:1337/restaurants/<restaurant_id>/?is_favorite=true
-  
+fillRestaurantFavoriteHTML = (restaurant = self.restaurant) => {
   const favorite = document.getElementById('restaurant-favorite');
+
+  const favoriteButton = document.querySelector('#restaurant-favorite button');
+  if (favoriteButton) {
+    favoriteButton.remove();
+  }
 
   const button = document.createElement('button');
   button.tabIndex = 0
-  button.innerText = 'Mark as favorite'
-  button.innerText = 'Remove as favorite'
+  if (restaurant.is_favorite === 'true') {
+    button.innerText = 'Remove as favorite'
+    button.onclick = () => saveAsFavorite(false)
+  } else {
+    button.innerText = 'Mark as favorite'
+    button.onclick = () => saveAsFavorite(true)
+  }
+
+  function saveAsFavorite(favorite) {
+    DBHelper.saveFavorite(restaurant.id, favorite, (error, restaurant) => {
+      fillRestaurantFavoriteHTML(restaurant);
+    })
+  }
 
   favorite.appendChild(button)
 }
