@@ -281,6 +281,12 @@ createReviewFormHTML = () => {
       "rating": ratingSelect.value,
       "comments": message.value
     }
+
+    if (!review.name || !review.rating || !review.comments) {
+      alert('Please fill in the form.')
+      return
+    }
+
     DBHelper.saveReview(review, (error, review) => {
       self.reviews.push(review);
       if (!review) {
