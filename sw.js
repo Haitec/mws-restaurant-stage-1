@@ -24,6 +24,10 @@ var assets = [
   '/js/restaurant_info.js'
 ]
 
+self.addEventListener('activate', function () {
+  return flushQueue()
+})
+
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches
@@ -52,15 +56,19 @@ self.addEventListener('fetch', function (event) {
       fetch(event.request)
         .catch(() => {
           return request
+            .clone()
             .json()
             .then(review => {
               review.createdAt = Date.now()
               review.updatedAt = review.createdAt
               var json = JSON.stringify(review)
-              return IDBSet(tmpReviewsName, Date.now(), json)
-                .then(json => new Response(json, {
-                  headers: { 'Content-Type': 'application/json' }
-                }))
+              var response = new Response(json, {
+                headers: { 'Content-Type': 'application/json' }
+              })
+              return enqueue(request)
+                .then(function () {
+                  return response
+                })
             })
         })
     )
@@ -130,6 +138,89 @@ self.addEventListener('activate', function (event) {
   )
 })
 
+/***********
+ * Helpers *
+ ***********/
+
+function enqueue(request) {
+  return serialize(request)
+    .then(function (serialized) {
+      IDBSet(tmpReviewsName, Date.now(), serialized)
+    })
+}
+
+function flushQueue() {
+  return IDBGetAllKeys(tmpReviewsName)
+    .then(function (queue) {
+      queue = queue || []
+
+      if (!queue.length) {
+        return Promise.resolve()
+      }
+
+      // Else, send the requests in order...
+      return sendInOrder(queue)
+    })
+}
+
+// https://github.com/mozilla/serviceworker-cookbook/tree/master/request-deferrer
+
+// Send the requests inside the queue in order. Waiting for the current before
+// sending the next one.
+function sendInOrder(requests) {
+  // The `reduce()` chains one promise per serialized request, not allowing to
+  // progress to the next one until completing the current.
+  var sending = requests.reduce(function (prevPromise, requestKey) {
+    return IDBGet(tmpReviewsName, requestKey)
+      .then(function (serialized) {
+        return prevPromise.then(function () {
+          return deserialize(serialized)
+            .then(function (request) {
+              return fetch(request)
+                .then(function () {
+                  IDBDelete(tmpReviewsName, requestKey)
+                })
+            })
+        })
+      })
+  }, Promise.resolve())
+  return sending
+}
+
+// Serialize is a little bit convolved due to headers is not a simple object.
+function serialize(request) {
+  var headers = {}
+  // `for(... of ...)` is ES6 notation but current browsers supporting SW, support this
+  // notation as well and this is the only way of retrieving all the headers.
+  for (var entry of request.headers.entries()) {
+    headers[entry[0]] = entry[1]
+  }
+  var serialized = {
+    url: request.url,
+    headers: headers,
+    method: request.method,
+    mode: request.mode,
+    credentials: request.credentials,
+    cache: request.cache,
+    redirect: request.redirect,
+    referrer: request.referrer
+  }
+
+  // Only if method is not `GET` or `HEAD` is the request allowed to have body.
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return request.clone().text().then(function (body) {
+      serialized.body = body
+      return Promise.resolve(serialized)
+    })
+  }
+  return Promise.resolve(serialized)
+}
+
+// Compared, deserialize is pretty simple.
+function deserialize(data) {
+  return Promise.resolve(new Request(data.url, data))
+}
+
 /*************
  * IndexedDB *
  *************/
@@ -169,6 +260,50 @@ function IDBGet(storeName, id) {
   })
 }
 
+function IDBGetAllKeys(storeName) {
+  return new Promise((resolve, reject) => {
+    var open = openIDB()
+    open.onsuccess = function () {
+      var db = open.result
+      var tx = db.transaction(storeName, 'readonly')
+      var store = tx.objectStore(storeName)
+
+      store.getAllKeys().onsuccess = function (req) {
+        resolve(req.target.result)
+      }
+
+      tx.oncomplete = function () {
+        db.close()
+      }
+    }
+    open.onerror = function (error) {
+      reject(error)
+    }
+  })
+}
+
+function IDBGetAll(storeName) {
+  return new Promise((resolve, reject) => {
+    var open = openIDB()
+    open.onsuccess = function () {
+      var db = open.result
+      var tx = db.transaction(storeName, 'readonly')
+      var store = tx.objectStore(storeName)
+
+      store.getAll().onsuccess = function (req) {
+        resolve(req.target.result)
+      }
+
+      tx.oncomplete = function () {
+        db.close()
+      }
+    }
+    open.onerror = function (error) {
+      reject(error)
+    }
+  })
+}
+
 function IDBSet(storeName, id, value) {
   return new Promise((resolve, reject) => {
     var open = openIDB()
@@ -179,6 +314,28 @@ function IDBSet(storeName, id, value) {
 
       store.put(value, id).onsuccess = function (req) {
         resolve(value)
+      }
+
+      tx.oncomplete = function () {
+        db.close()
+      }
+    }
+    open.onerror = function (error) {
+      reject(error)
+    }
+  })
+}
+
+function IDBDelete(storeName, id) {
+  return new Promise((resolve, reject) => {
+    var open = openIDB()
+    open.onsuccess = function () {
+      var db = open.result
+      var tx = db.transaction(storeName, 'readwrite')
+      var store = tx.objectStore(storeName)
+
+      store.delete(id).onsuccess = function (req) {
+        resolve(req)
       }
 
       tx.oncomplete = function () {
