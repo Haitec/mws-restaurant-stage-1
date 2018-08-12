@@ -3,7 +3,8 @@
 var name = 'mws'
 var version = name + '-v1-'
 var idbVersion = 1
-var idbStoreNames = ['restaurants', 'reviews']
+var tmpReviewsName = 'tmpReviews'
+var idbStoreNames = ['restaurants', 'reviews', tmpReviewsName]
 
 var assets = [
   '/',
@@ -36,23 +37,53 @@ self.addEventListener('install', function (event) {
 self.addEventListener('fetch', function (event) {
   var requestUrl = new URL(event.request.url)
 
+  if (requestUrl.hostname !== location.hostname) {
+    return
+  }
+
+  // Same hostname
+
+  var path = requestUrl.pathname.split('/')[1]
+
+  if (event.request.method === 'POST') {
+
+    var request = event.request.clone()
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return request
+            .json()
+            .then(review => {
+              review.createdAt = Date.now()
+              review.updatedAt = review.createdAt
+              var json = JSON.stringify(review)
+              return IDBSet(tmpReviewsName, Date.now(), json)
+                .then(json => new Response(json, {
+                  headers: { 'Content-Type': 'application/json' }
+                }))
+            })
+        })
+    )
+    return
+  }
+
   if (event.request.method !== 'GET') {
     return
   }
 
+  if (idbStoreNames.includes(path)) {
+    var key = requestUrl.pathname + requestUrl.search
+    var store = path
+    event.respondWith(
+      cacheIn(store, key, event)
+    )
+  }
+
   if (requestUrl.origin !== location.origin) {
-    if (requestUrl.hostname === location.hostname) {
-      var path = requestUrl.pathname.split('/')[1]
-      if (idbStoreNames.includes(path)) {
-        var key = requestUrl.pathname + requestUrl.search
-        var store = path
-        event.respondWith(
-          cacheIn(store, key, event)
-        )
-      }
-    }
     return
   }
+
+  // Same origin
 
   event.respondWith(
     caches
@@ -99,6 +130,10 @@ self.addEventListener('activate', function (event) {
   )
 })
 
+/*************
+ * IndexedDB *
+ *************/
+
 function openIDB() {
   var open = indexedDB.open(name, idbVersion)
 
@@ -143,7 +178,7 @@ function IDBSet(storeName, id, value) {
       var store = tx.objectStore(storeName)
 
       store.put(value, id).onsuccess = function (req) {
-        resolve()
+        resolve(value)
       }
 
       tx.oncomplete = function () {
