@@ -71,6 +71,7 @@ nav h1 a {
     background-color: #eee;
     font-size: 17px;
     margin: 0;
+    text-align: initial;
 }
 @media(min-width: 768px) {
   #breadcrumb {
