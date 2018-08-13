@@ -24,8 +24,8 @@ var assets = [
   '/js/restaurant_info.js'
 ]
 
-self.addEventListener('activate', function () {
-  return flushQueue()
+self.addEventListener('load', function () {
+  self.addEventListener('online', flushQueue)
 })
 
 self.addEventListener('install', function (event) {
